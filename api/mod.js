@@ -12,10 +12,9 @@ const API = async (path, data) => {
 	})
 
 	if (res.status < 200 || res.status > 299) {
-		const err = Error(`API Error: ${res.status} - ${res.statusText}`)
-		err.path = path
-		err.data = data
-		throw err
+		const body = await res.text()
+		console.log(path, data, body)
+		throw Error(`API Error: ${res.status} - ${res.statusText}`)
 	}
 
 	return res.json()
