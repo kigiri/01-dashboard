@@ -1,5 +1,5 @@
 const headers = {
-	Authorization: `Bearer ${NOTION_API_KEY}`,
+	Authorization: `Bearer ${Deno.env.get('NOTION_API_KEY')}`,
 	"Content-Type": "application/json",
 	"Notion-Version": "2021-08-16",
 }
