@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dev Dashboard</title>
+</head>
+<body>
+<script type="module">
+const normalize = str => str.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/, '-')
+const clear = elem => { while (elem?.firstChild) elem.firstChild.remove() }
+
+const filters = {}
+const registerFilter = (key, value) => {
+}
+
+const makeProperty = (key, value) => {
+  if (value == null || (Array.isArray(value) && value[0] == null)) return
+
+  const keyElem = document.createElement('span')
+  keyElem.className = 'key'
+  keyElem.textContent = key
+
+  const propertyElem = document.createElement('div')
+  const addValue = value => {
+    const valueElem = document.createElement('span')
+    const id = normalize(value)
+    valueElem.className = id
+    valueElem.textContent = value
+    return valueElem
+  }
+  propertyElem.className = `property ${key}`
+  Array.isArray(value)
+    ? propertyElem.append(...value.map(addValue))
+    : propertyElem.append(addValue(value))
+
+  return {
+    elem: propertyElem,
+    update: (newValue) => {
+      clear(propertyElem)
+      Array.isArray(newValue)
+        ? propertyElem.append(...newValue.map(addValue))
+        : propertyElem.append(addValue(newValue))
+    }
+  }
+}
+
+const getTicket = id => ticketIdMap[id]
+  || console.warn('Attempt to link to non existing id', id)
+
+const PROPERTIES = ['owner', 'status', 'type', 'sprint']
+const createTicket = data => {
+  const ticket = { id: data.id, elem: document.createElement('div') }
+  const titleElem = document.createElement('h3')
+  const propertiesElem = document.createElement('div')
+  const properties = {}
+
+  for (const key of PROPERTIES) {
+    const value = data[key]
+    const { elem, update } = makeProperty(key, value)
+    ticket[key] = value
+    properties[key] = update
+    propertiesElem.append(elem)
+    registerFilter(ticket, key, value)
+  }
+
+  // Title (Ticket || Feature || Task)
+  title.textContent = data.title
+  ticket.linked = new Set(data.linked || [])
+
+  const update = newData => {
+    if (newData.title !== data.title) {
+      title.textContent = newData.title
+    }
+
+    for (const key of PROPERTIES) {
+      const value = newData[key]
+      const oldValue = ticket[key]
+      if (String(oldValue) === String(value)) continue
+      ticket[key] = value
+      properties[key](value)
+      unregisterFilter(ticket, key, oldValue)
+      registerFilter(ticket, key, value)
+    }
+
+    const linked = new Set(newData.linked || [])
+
+    // added links
+    for (const link of linked) {
+      ticket.linked.has(link) || getTicket(link)?.linked.add(ticket)
+    }
+
+    // removed links
+    for (const link of ticket.linked) {
+      linked.has(link) || getTicket(link)?.linked.delete(ticket)
+    }
+
+    ticket.linked = linked
+  }
+
+  // (if task link with parent feature)
+  // (if feature link with children tasks)
+  
+  return ticket
+}
+
+let indexes
+const loadData = tickets => {
+  const oldIndexes = indexes
+  indexes = { id: new Set() }
+  for (const data of tickets) {
+    const ticket = oldIndexes.id.get(data.id) || createTicket(data)
+    ticket.update(ticket)
+    indexes.id.add(ticket)
+  }
+}
+
+
+// -- INIT --
+// load from cache
+loadData(JSON.parse(localStorage.tickets || '[]'))
+
+const res = await fetch('https://01-dashboard.deno.dev')
+const body = res.text()
+try {
+  if (res.status !== 200) throw Error('Unexpected Status code')
+  loadData(JSON.parse(body))
+  localStorage.tickets = body
+} catch (err) {
+  console.error(err)
+  console.log({ body, status: res.status, statusText: res.statusText })
+}
+
+</script>
+</body>
+</html>
