@@ -106,6 +106,7 @@ const createTicket = data => {
 
 let indexes
 const loadData = tickets => {
+  console.log(tickets)
   const oldIndexes = indexes
   indexes = { id: new Set() }
   for (const data of tickets) {
@@ -118,18 +119,18 @@ const loadData = tickets => {
 
 // -- INIT --
 // load from cache
-loadData(JSON.parse(localStorage.tickets || '[]'))
+loadData(JSON.parse(window.$TICKETS || '[]'))
 
 const res = await fetch('https://01-dashboard.deno.dev')
 const body = res.text()
 try {
   if (res.status !== 200) throw Error('Unexpected Status code')
   loadData(JSON.parse(body))
-  localStorage.tickets = body
 } catch (err) {
   console.error(err)
   console.log({ body, status: res.status, statusText: res.statusText })
 }
+
 
 </script>
 </body>
